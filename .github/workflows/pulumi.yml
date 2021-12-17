@@ -9,6 +9,9 @@ jobs:
     strategy:
       matrix:
         node-version: [14.x]
+    environment:
+      name: testo
+      url: https://jobsandenvironments.azurewebsites.net/
     steps:
       - uses: actions/checkout@v1
       - name: Test
