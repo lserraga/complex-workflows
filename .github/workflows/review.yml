@@ -11,16 +11,16 @@ jobs:
         node-version: [14.x]
     environment:
       name: testo
+      url: https://jobsandenvironments.azurewebsites.net/
     steps:
       - uses: actions/checkout@v1
       - name: Test
         run: echo HOLA
   deployprod:
-    build: deploydev
+    runs-on: ubuntu-latest
     environment:
       name: testo
       url: https://jobsandenvironments.azurewebsites.net/
-    runs-on: ubuntu-latest
     steps:
       - name: Test
         run: echo HOLA
