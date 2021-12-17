@@ -1,0 +1,48 @@
+name: Call a reusable workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      bundleName:
+        type: choice
+        description: 'The name of the deployment bundle to deploy'
+        required: true
+        options:
+          - 'demo'
+          - 'product-qa'
+      command:
+        type: choice
+        description: 'Deployment action'
+        required: true
+        options:
+          - 'deploy'
+          - 'destroy'
+          - 'preview'
+      stackPassphrase:
+        description: 'Stack passphrase'
+        required: true
+      sharedInfrastructureVersion:
+        description: 'Connect Shared Infrastructure version to deploy (if applicable)'
+        required: false
+      connectAuthVersion:
+        description: 'Connect Authentication version to deploy (if applicable)'
+        required: false
+      connectWorkflowVersion:
+        description: 'Connect Workflow version to deploy (if applicable)'
+        required: false
+      connectConfigServiceVersion:
+        description: 'Connect Configuration Service version to deploy (if applicable)'
+        required: false
+      cloudFlowVersion:
+        description: 'CloudFlow version to deploy (if applicable)'
+        required: false
+
+jobs:
+  call-pulumi-workflow:
+    uses: lserraga/complex-workflows/.github/workflows/pulumi.yml@main
+  call-pulumi-workflow-again:
+    uses: lserraga/complex-workflows/.github/workflows/pulumi.yml@main
+    needs: call-pulumi-workflow
+  call-test-workflow-with-review:
+    uses: lserraga/complex-workflows/.github/workflows/pulumi.yml@main
+    needs: call-pulumi-workflow-again
