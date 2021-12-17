@@ -40,9 +40,11 @@ on:
 jobs:
   call-pulumi-workflow:
     uses: lserraga/complex-workflows/.github/workflows/pulumi.yml@main
-  call-pulumi-workflow-again:
-    uses: lserraga/complex-workflows/.github/workflows/pulumi.yml@main
-    needs: call-pulumi-workflow
+    with:
+      bundleName: demo
+      command: deploy
+    secrets:
+      stackPassphrase: '2131'
   call-test-workflow-with-review:
     uses: lserraga/complex-workflows/.github/workflows/pulumi.yml@main
-    needs: call-pulumi-workflow-again
+    needs: call-pulumi-workflow

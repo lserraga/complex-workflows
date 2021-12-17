@@ -2,17 +2,37 @@ name: Pulumi
 
 on:
   workflow_call:
-
+    inputs:
+      bundleName:
+        type: string
+      command:
+        type: string
+      sharedInfrastructureVersion:
+        type: string
+      connectAuthVersion:
+        type: string
+      connectWorkflowVersion:
+        type: string
+      connectConfigServiceVersion:
+        type: string
+    secrets:
+      stackPassphrase:
+        required: false
 jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         node-version: [14.x]
-    environment:
-      name: testo
-      url: https://jobsandenvironments.azurewebsites.net/
     steps:
       - uses: actions/checkout@v1
       - name: Test
         run: echo HOLA
+      - name: Test 2
+        run: printenv
+      - name: sacs
+        run: |
+          echo "inputs.bundleName: ${{ inputs.bundleName }}"
+          echo "secrets.stackPassphrase: ${{ secrets.stackPassphrase }}"
+          echo "secrets.stackPassphrase: ${{ inputs.connectWorkflowVersion }}"
+          echo "secrets.cloudFlowVersion: ${{ github.event.inputs.cloudFlowVersion }}"
