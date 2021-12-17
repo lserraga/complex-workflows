@@ -15,3 +15,12 @@ jobs:
       - uses: actions/checkout@v1
       - name: Test
         run: echo HOLA
+  deployprod:
+    build: deploydev
+    environment:
+      name: testo
+      url: https://jobsandenvironments.azurewebsites.net/
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test
+        run: echo HOLA
