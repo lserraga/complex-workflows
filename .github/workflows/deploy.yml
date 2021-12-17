@@ -1,0 +1,56 @@
+name: Deploy bundle
+
+on:
+  workflow_call:
+    inputs:
+      bundleName:
+        type: string
+        required: false
+      command:
+        type: string
+        required: false
+      stackPassphrase:
+        type: string
+        required: false
+      connectAuthVersion:
+        type: string
+        required: false
+      connectWorkflowVersion:
+        type: string
+        required: false
+      connectConfigServiceVersion:
+        type: string
+        required: false
+      cloudFlowVersion:
+        type: string
+        required: false
+      adminTasksVersion:
+        type: string
+        required: false
+      setupAuthAccounts:
+        type: boolean
+        required: false
+      updateWFMConfigurations:
+        type: boolean
+        required: false
+    secrets:
+      stackPassphrase:
+        required: false
+
+jobs:
+  xxxx:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [14.x]
+    environment: testo
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Archive logs
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: logs
+          path: |
+            artifacts/*.txt

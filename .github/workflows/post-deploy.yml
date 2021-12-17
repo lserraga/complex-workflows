@@ -1,0 +1,65 @@
+name: Post deploy tasks
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        required: false
+      bundleName:
+        type: string
+        required: false
+      command:
+        type: string
+        required: false
+      stackPassphrase:
+        type: string
+        required: false
+      connectAuthVersion:
+        type: string
+        required: false
+      connectWorkflowVersion:
+        type: string
+        required: false
+      connectConfigServiceVersion:
+        type: string
+        required: false
+      cloudFlowVersion:
+        type: string
+        required: false
+      adminTasksVersion:
+        type: string
+        required: false
+      setupAuthAccounts:
+        type: boolean
+        required: false
+      updateWFMConfigurations:
+        type: boolean
+        required: false
+    secrets:
+      stackPassphrase:
+        required: false
+env:
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_SERVERLESS_ROBOT_ACCESS_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SERVERLESS_ROBOT_SECRET_KEY }}
+  AWS_REGION: eu-west-1
+  GITHUB_TOKEN: ${{ secrets.CI_BOT_PAT }}
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [14.x]
+
+    steps:
+      - uses: actions/checkout@v1
+      - name: Archive logs
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: logs
+          path: |
+            artifacts/*.txt
