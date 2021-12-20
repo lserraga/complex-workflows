@@ -1,4 +1,4 @@
-name: Main Flow
+name: Main Deploy Flow
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ on:
         description: 'The name of the deployment bundle to deploy'
         required: true
         options:
-          - 'demo'
+          - 'sandbox-test'
           - 'product-qa'
       command:
         type: choice
@@ -20,6 +20,14 @@ on:
       stackPassphrase:
         description: 'Stack passphrase'
         required: true
+      runSetup:
+        type: boolean
+        description: 'Run setup'
+        required: false
+      runEnd2EndTests:
+        type: boolean
+        description: 'Run end to end tests'
+        required: false
       connectAuthVersion:
         description: 'Connect Authentication version to deploy (if applicable)'
         required: false
@@ -33,19 +41,59 @@ on:
         description: 'CloudFlow version to deploy (if applicable)'
         required: false
       adminTasksVersion:
-        description: 'Admin tasks version to use (if applicable)'
+        description: 'Admin tasks version to run (if applicable)'
         required: false
 
+env:
+  AWS_REGION: eu-west-1
+  GITHUB_TOKEN: ${{ secrets.CI_BOT_PAT }}
+  PEPO: pepa
+
 jobs:
-  preview:
-    uses: lserraga/complex-workflows/.github/workflows/deploy.yml@main
-    with:
-      bundleName: ${{ github.event.inputs.sharedInfrastructureVersion }}
-      command: 'preview'
-      connectAuthVersion: ${{ github.event.inputs.connectAuthVersion }}
-      connectWorkflowVersion: ${{ github.event.inputs.connectWorkflowVersion }}
-      connectConfigServiceVersion: ${{ github.event.inputs.connectConfigServiceVersion }}
-      cloudFlowVersion: ${{ github.event.inputs.cloudFlowVersion }}
-      adminTasksVersion: ${{ github.event.inputs.adminTasksVersion }}
-    secrets:
-      stackPassphrase: ${{ github.event.inputs.stackPassphrase }}
+  pulumi-preview:
+    name: ${{ github.event.inputs.bundleName }}-preview
+    if: ${{ github.event.inputs.command == 'deploy' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [14.x]
+    steps:
+      - run: printenv
+  pulumi-deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [14.x]
+    needs: [pulumi-preview]
+    if: |
+      always() &&
+      (needs.pulumi-preview.result == 'success' || needs.pulumi-preview.result == 'skipped')
+    environment: super-duper-deploy
+    steps:
+      - run: printenv
+      - name: Run preview script
+        run: |
+          printenv
+        env:
+          PEPO: paco
+  post-deployment-setup:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [14.x]
+    needs: [pulumi-deploy]
+    if: ${{ github.event.inputs.command == 'deploy' && github.event.inputs.runSetup == 'true' }}
+    steps:
+      - run: printenv
+  post-deployment-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [ 14.x ]
+    needs: [post-deployment-setup,pulumi-deploy]
+    if: |
+      always() && github.event.inputs.runEnd2EndTests == 'true' &&
+      (needs.post-deployment-setup.result == 'success' || needs.post-deployment-setup.result == 'skipped') &&
+      needs.pulumi-deploy.result == 'success'
+    steps:
+      - run: printenv
