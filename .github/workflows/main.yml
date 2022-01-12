@@ -8,8 +8,16 @@ on:
         description: 'The name of the deployment bundle to deploy'
         required: true
         options:
-          - 'sandbox-test'
+          - 'qa-eu'
+          - 'fat-eu'
           - 'product-qa'
+      environment:
+        type: choice
+        description: 'The environment to use for review, secrets, etc'
+        required: true
+        options:
+          - 'dev-qa'
+          - 'uat'
       command:
         type: choice
         description: 'Deployment action'
@@ -17,6 +25,7 @@ on:
         options:
           - 'deploy'
           - 'destroy'
+          - 'none'
       stackPassphrase:
         description: 'Stack passphrase'
         required: true
@@ -37,9 +46,9 @@ on:
       connectConfigServiceVersion:
         description: 'Connect Configuration Service version to deploy (if applicable)'
         required: false
-      cloudFlowVersion:
-        description: 'CloudFlow version to deploy (if applicable)'
-        required: false
+        #cloudFlowVersion:
+        #description: 'CloudFlow version to deploy (if applicable)'
+        #required: false
       adminTasksVersion:
         description: 'Admin tasks version to run (if applicable)'
         required: false
@@ -47,44 +56,69 @@ on:
 env:
   AWS_REGION: eu-west-1
   GITHUB_TOKEN: ${{ secrets.CI_BOT_PAT }}
-  PEPO: pepa
+  CI: true
+  DEPLOYMENT_BUNDLE: ${{ github.event.inputs.bundleName }}
+  PULUMI_ACTION: ${{ github.event.inputs.command }}
+  STACK_PASSPHRASE: ${{ github.event.inputs.stackPassphrase }}
+  # Versions
+  CONNECT_WORKFLOW_VERSION: ${{ github.event.inputs.connectWorkflowVersion }}
+  CONNECT_CONFIGURATION_SERVICE_VERSION: ${{ github.event.inputs.connectConfigServiceVersion }}
+  CONNECT_AUTHENTICATION_VERSION: ${{ github.event.inputs.connectAuthVersion }}
+  #CLOUD_FLOW_VERSION: ${{ github.event.inputs.cloudFlowVersion }}
+  ADMIN_TASKS_VERSION: ${{ github.event.inputs.adminTasksVersion }}
+  # Deployment variables
+  #CLOUD_FLOW_JWT_PRIVATE_KEY: ${{ secrets.CLOUD_FLOW_JWT_PRIVATE_KEY }}
+  CONNECT_WORKFLOW_CREDENTIALS_ENCRYPTION_KEY: ${{ secrets.CONNECT_WORKFLOW_CREDENTIALS_ENCRYPTION_KEY }}
+  CONNECT_AUTHENTICATION_AUTHORIZER_PRIVATE_KEY: ${{ secrets.CONNECT_AUTHENTICATION_AUTHORIZER_PRIVATE_KEY }}
+  CONNECT_AUTHENTICATION_AUTHORIZER_SECRET: ${{ secrets.CONNECT_AUTHENTICATION_AUTHORIZER_SECRET }}
+  CONNECT_AUTHENTICATION_JWT_PRIVATE_KEY: ${{ secrets.CONNECT_AUTHENTICATION_JWT_PRIVATE_KEY }}
+  CONNECT_AUTHENTICATION_CREDENTIALS: ${{ secrets.CONNECT_AUTHENTICATION_API_CREDENTIALS }}
+  CONNECT_AUTHENTICATION_ACCOUNTS: ${{ secrets.CONNECT_AUTHENTICATION_AUTH_ACCOUNTS }}
+  # Post deployment tasks variables
+  CONNECT_AUTHENTICATION_SETUP_AUTH_AUTHORIZER_ENCRYPTION_PUBLIC_KEY: ${{ secrets.CONNECT_AUTHENTICATION_AUTHORIZER_PUBLIC_KEY }}
+  CLOUD_FLOW_TESTS_CALLBACK_TEST_URL: https://cloudflow-http-callback-qa-dev.aevi-test.io/v1/messages
+  CONNECT_WORKFLOW_TESTS_MOCK_ENDPOINT_URL: https://connect-mock-endpoint-wfm-e2e-tests.aevi-test.io/v1
 
 jobs:
   pulumi-preview:
     name: ${{ github.event.inputs.bundleName }}-preview
     if: ${{ github.event.inputs.command == 'deploy' }}
+    environment: ${{ github.event.inputs.environment }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
         node-version: [14.x]
     steps:
-      - run: printenv
+      - name: Run post deployment script
+        run: echo hola
   pulumi-deploy:
+    name: ${{ github.event.inputs.bundleName }}-deploy
     runs-on: ubuntu-latest
     strategy:
       matrix:
         node-version: [14.x]
     needs: [pulumi-preview]
     if: |
-      always() &&
+      always() && github.event.inputs.command != 'none' &&
       (needs.pulumi-preview.result == 'success' || needs.pulumi-preview.result == 'skipped')
-    environment: super-duper-deploy
+    environment: ${{ github.event.inputs.environment }}
     steps:
-      - run: printenv
-      - name: Run preview script
-        run: |
-          printenv
-        env:
-          PEPO: paco
+      - name: Run post deployment script
+        run: echo hola
+
   post-deployment-setup:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         node-version: [14.x]
     needs: [pulumi-deploy]
-    if: ${{ github.event.inputs.command == 'deploy' && github.event.inputs.runSetup == 'true' }}
+    if: |
+      always() && github.event.inputs.command != 'destroy' && github.event.inputs.runSetup == 'true' &&
+      (needs.pulumi-deploy.result == 'success' || needs.pulumi-deploy.result == 'skipped')
+    environment: ${{ github.event.inputs.environment }}
     steps:
-      - run: printenv
+      - name: Run post deployment script
+        run: echo hola
   post-deployment-tests:
     runs-on: ubuntu-latest
     strategy:
@@ -92,8 +126,10 @@ jobs:
         node-version: [ 14.x ]
     needs: [post-deployment-setup,pulumi-deploy]
     if: |
-      always() && github.event.inputs.runEnd2EndTests == 'true' &&
+      always() && github.event.inputs.command != 'destroy' && github.event.inputs.runEnd2EndTests == 'true' &&
       (needs.post-deployment-setup.result == 'success' || needs.post-deployment-setup.result == 'skipped') &&
-      needs.pulumi-deploy.result == 'success'
+      (needs.pulumi-deploy.result == 'success' || needs.pulumi-deploy.result == 'skipped')
+    environment: ${{ github.event.inputs.environment }}
     steps:
-      - run: printenv
+      - name: Run post deployment script
+        run: echo hola
